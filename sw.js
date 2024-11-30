@@ -1,21 +1,21 @@
-self.addEventListener('push', function(e) {
-    var options = {
-      body: 'This notification was generated from a push!',
-      icon: 'images/example.png',
-      sound:'notification.mp3',
-      vibrate: [100, 50, 100],
-      data: {
-        dateOfArrival: Date.now(),
-        primaryKey: '2'
-      },
-      actions: [
-        {action: 'explore', title: 'Explore this new world',
-          icon: 'images/checkmark.png'},
-        {action: 'close', title: 'Close',
-          icon: 'images/xmark.png'},
-      ]
+self.addEventListener('push', function(event) {
+    const data = event.data ? event.data.json() : {};
+    const title = data.title || 'New Notification';
+    const options = {
+        body: data.message || 'You have a new notification!',
+        // icon: '/images/notification-icon.png', // optional
+        // badge: '/images/badge-icon.png' // optional
     };
-    e.waitUntil(
-      self.registration.showNotification('test message', options)
+
+    event.waitUntil(
+        self.registration.showNotification(title, options)
     );
-  });
+});
+
+// When a notification is clicked, this will focus the window
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+    event.waitUntil(
+        clients.openWindow('/') // Customize the URL to redirect upon click
+    );
+});
