@@ -43,64 +43,81 @@
         }
 
         // Subscribe the user to push notifications
-        // Subscribe the user to push notifications
         async function subscribeUser() {
-            // Register service worker
-            const registration = await navigator.serviceWorker.register('sw.js');
-            console.log('Service Worker registered:', registration);
+            // Check notification permission
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.error('Notification permission denied');
+                return;
+            }
 
-            // Now subscribe the user for push notifications
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-            });
+            try {
+                // Register service worker
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                console.log('Service Worker registered:', registration);
 
-            console.log('User is subscribed:', subscription);
-
-            // Send the subscription to the server
-            fetch('http://localhost:8000/subscribe', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(subscription),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Server response:', data);
-                })
-                .catch(err => {
-                    console.error('Failed to subscribe the user:', err);
+                // Now subscribe the user for push notifications
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
                 });
 
-            pushSubscription = subscription;
+                console.log('User is subscribed:', subscription);
+
+                // Send the subscription to the server
+                const response = await fetch('http://localhost:8000/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(subscription),
+                });
+
+                const data = await response.json();
+                console.log('Server response:', data);
+
+                pushSubscription = subscription;
+            } catch (err) {
+                console.error('Failed to subscribe the user:', err);
+            }
         }
+
         // Send notification to the server
-        function sendNotification() {
+        async function sendNotification() {
             const notificationPayload = {
                 title: 'New Notification',
                 message: 'This is a test push notification!',
             };
 
-            fetch('http://localhost:8000/send-notification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(notificationPayload),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Notification sent:', data);
-                })
-                .catch(err => {
-                    console.error('Error sending notification:', err);
+            try {
+                const response = await fetch('http://localhost:8000/send-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(notificationPayload),
                 });
+
+                const data = await response.json();
+                console.log('Notification sent:', data);
+            } catch (err) {
+                console.error('Error sending notification:', err);
+            }
         }
 
         // Event listeners for buttons
         subscribeButton.addEventListener('click', subscribeUser);
         sendNotificationButton.addEventListener('click', sendNotification);
+
+        // Check service worker registration status
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(function (registration) {
+                console.log('Service Worker ready:', registration);
+            }).catch(function (err) {
+                console.error('Error with service worker:', err);
+            });
+        }
+
     </script>
 </body>
 
