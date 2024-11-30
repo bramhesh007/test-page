@@ -58,7 +58,7 @@
             console.log('User is subscribed:', subscription);
 
             // Send the subscription to the server
-            fetch('http://localhost:5000/subscribe', {
+            fetch('http://localhost:8000/subscribe', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -82,7 +82,7 @@
                 message: 'This is a test push notification!',
             };
 
-            fetch('http://localhost:5000/send-notification', {
+            fetch('http://localhost:8000/send-notification', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
