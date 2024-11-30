@@ -1,21 +1,16 @@
 self.addEventListener('push', function(event) {
-    const data = event.data ? event.data.json() : {};
-    const title = data.title || 'New Notification';
-    const options = {
-        body: data.message || 'You have a new notification!',
-        // icon: '/images/notification-icon.png', // optional
-        // badge: '/images/badge-icon.png' // optional
-    };
+  let options = {
+    body: event.data ? event.data.text() : 'New Notification',
+    // icon: '/icon.png',
+    // badge: '/badge.png'
+  };
 
-    event.waitUntil(
-        self.registration.showNotification(title, options)
-    );
+  event.waitUntil(
+    self.registration.showNotification('Push Notification', options)
+  );
 });
 
-// When a notification is clicked, this will focus the window
 self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    event.waitUntil(
-        clients.openWindow('/') // Customize the URL to redirect upon click
-    );
+  event.notification.close();
+  // You can add behavior here on notification click
 });
