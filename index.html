@@ -42,6 +42,49 @@
             return outputArray;
         }
 
+        // Register the service worker inline
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/index.html', {scope: '/'})
+                .then(function (registration) {
+                    console.log('Service Worker registered:', registration);
+
+                    registration.active.postMessage({
+                        type: 'register',
+                        data: publicVapidKey
+                    });
+
+                })
+                .catch(function (err) {
+                    console.error('Service Worker registration failed:', err);
+                });
+        }
+
+        // Service Worker script embedded in index.html
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data.type === 'send-notification') {
+                    const {title, message} = event.data.payload;
+                    self.registration.showNotification(title, {
+                        body: message,
+                        icon: '/icon.png',
+                        badge: '/badge.png',
+                    });
+                }
+            });
+
+            navigator.serviceWorker.addEventListener('push', (event) => {
+                const options = {
+                    body: event.data ? event.data.text() : 'Default message',
+                    icon: '/icon.png',
+                    badge: '/badge.png',
+                };
+
+                event.waitUntil(
+                    self.registration.showNotification('Push Notification', options)
+                );
+            });
+        }
+
         // Subscribe the user to push notifications
         async function subscribeUser() {
             // Check notification permission
@@ -53,22 +96,7 @@
 
             try {
                 // Register service worker
-                self.addEventListener('push', function(event) {
-  let options = {
-    body: event.data ? event.data.text() : 'New Notification',
-    // icon: '/icon.png',
-    // badge: '/badge.png'
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('Push Notification', options)
-  );
-});
-
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-  // You can add behavior here on notification click
-});
+                const registration = await navigator.serviceWorker.register('/index.html');
                 console.log('Service Worker registered:', registration);
 
                 // Now subscribe the user for push notifications
@@ -123,15 +151,6 @@ self.addEventListener('notificationclick', function(event) {
         // Event listeners for buttons
         subscribeButton.addEventListener('click', subscribeUser);
         sendNotificationButton.addEventListener('click', sendNotification);
-
-        // Check service worker registration status
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(function (registration) {
-                console.log('Service Worker ready:', registration);
-            }).catch(function (err) {
-                console.error('Error with service worker:', err);
-            });
-        }
 
     </script>
 </body>
