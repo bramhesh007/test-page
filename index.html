@@ -3,27 +3,104 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Push Notification</title>
+    <title>Web Push Notification Test</title>
 </head>
 
 <body>
-    <button onclick="subscribe()">Subscribe</button>
-    <script>
-        addEventListener('load', async () => {
-            let sw = await navigator.serviceWorker.register('./sw.js');
-            console.log(sw)
-        });
+    <h1>Web Push Notification Test</h1>
 
-        async function subscribe() {
-            let sw = await navigator.serviceWorker.ready;
-            let push = await sw.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: 'BPqCTh5EzSIze8EtcFlF4W7t56Mgv10z05YqEltXXu2y3T9ok6nzbKoBcdzE8rzgZEeI2NBrVENm6thmqQ-0fYQ'
-            });
-            console.log(JSON.stringify(push));
+    <button id="subscribeButton">Subscribe to Notifications</button>
+    <button id="sendNotificationButton">Send Notification</button>
+
+    <script>
+        // Check if the browser supports Push Notifications
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            console.log('Push notifications are supported!');
+        } else {
+            console.log('Push notifications are not supported in this browser.');
         }
+
+        const subscribeButton = document.getElementById('subscribeButton');
+        const sendNotificationButton = document.getElementById('sendNotificationButton');
+        let pushSubscription = null;
+
+        // VAPID Public Key from your server
+        const publicVapidKey = 'BN4lD4ljOKr4WpkJRWEtDO8tAGj4o_leOfOxqv2vwGWMRuduMgwb_dLWdd7zHmmglFpDItQTXVEWELJcRjigT3g';
+
+        // Convert VAPID public key to URL-safe base64 format
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        // Subscribe the user to push notifications
+        // Subscribe the user to push notifications
+        async function subscribeUser() {
+            // Register service worker
+            const registration = await navigator.serviceWorker.register('/service-worker.js');
+            console.log('Service Worker registered:', registration);
+
+            // Now subscribe the user for push notifications
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+            });
+
+            console.log('User is subscribed:', subscription);
+
+            // Send the subscription to the server
+            fetch('http://localhost:5000/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(subscription),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Server response:', data);
+                })
+                .catch(err => {
+                    console.error('Failed to subscribe the user:', err);
+                });
+
+            pushSubscription = subscription;
+        }
+        // Send notification to the server
+        function sendNotification() {
+            const notificationPayload = {
+                title: 'New Notification',
+                message: 'This is a test push notification!',
+            };
+
+            fetch('http://localhost:5000/send-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(notificationPayload),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Notification sent:', data);
+                })
+                .catch(err => {
+                    console.error('Error sending notification:', err);
+                });
+        }
+
+        // Event listeners for buttons
+        subscribeButton.addEventListener('click', subscribeUser);
+        sendNotificationButton.addEventListener('click', sendNotification);
     </script>
 </body>
 
